@@ -7,6 +7,7 @@ Requirements
 ------------
 
 OS: Ubuntu 20.04
+
 An user in sudoers group
 
 Role Variables
