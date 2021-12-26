@@ -1,0 +1,184 @@
+---
+############################################### Disable sendmail ################################
+
+- name: Check if sendmail is present
+  stat: 
+    path: "/etc/init.d/sendmail"
+  register: service_sendmail_status
+
+- name: Disable sendmail if present
+  block:
+  - name: Stopping service sendmail
+    service:
+      name: sendmail
+      state: stopped
+
+  - name: Disable service sendmail
+    service:
+      name: sendmail
+      enabled: false
+
+  - name: remove package sendmail
+    apt:
+      name: sendmail
+      state: absent
+      purge: true
+  when: service_sendmail_status.stat.exists
+
+
+############################################### Package installation ###############################
+
+
+#### Postfix Debconf ######
+
+- name: Debconf - Postfix
+  debconf:
+    name: "{{ item.name }}"
+    question: "{{ item.question }}"
+    value: "{{ item.value }}"
+    vtype: "{{ item.vtype }}"
+  with_items: 
+  - { name: "postfix", question: "postfix/main_mailer_type", value: "Internet Site", vtype: "select"}
+  - { name: "postfix", question: "postfix/mailname", value: "{{ mail_fqdn }}", vtype: "select"}
+
+############################
+
+- name: Install packages (postfix, dovecot, mariadb, binutils, rkhunter, etc..)
+  apt:
+    name:
+      - postfix
+      - postfix-mysql
+      - postfix-doc
+      - openssl
+      - getmail4
+      - rkhunter
+      - binutils
+      - dovecot-imapd
+      - dovecot-pop3d
+      - dovecot-mysql
+      - dovecot-sieve
+      - patch
+    state: present
+
+- name: Master.cf templated deploy
+  template:
+    src: master.cf.j2
+    dest: "/etc/postfix/master.cf"
+    owner: root
+    group: root
+    mode: 0644
+  register: postfix_master_file
+
+- name: Restart Postfix
+  service:
+    name: postfix
+    state: restarted
+  when: postfix_master_file
+
+
+########## Mailman ##############
+
+
+- name: Debonf - Mailman
+  debconf:
+    name: "{{ item.name }}"
+    question: "{{ item.question }}"
+    value: "{{ item.value }}"
+    vtype: "{{ item.vtype }}"
+  with_items: 
+  - { name: "postfix", question: "mailman/used_languages", value: "en", vtype: "multiselect"}
+  - { name: "postfix", question: "mailman/create_site_list", value: "", vtype: "multiselect"}
+
+- name: Install packages mailman
+  apt:
+    name:
+      - mailman
+    state: present
+  register: mailman_package_install
+
+- name: "Mailman: Create a random password"
+  set_fact:
+    mailman_admin_password: "{{ lookup('password', '/tmp/password') }}"
+  when: mailman_admin_password is not defined
+
+- name: "Mailman: New maillist"
+  command: echo {{ admin_email }} | echo {{ mailman_admin_password }} | newlist mailman
+  register: mailman_new_maillist
+  when: mailman_package_install.changed
+
+
+- name: "Mailman: /etc/aliases template"
+  template:
+    src: "aliases.j2"
+    dest: "/etc/aliases"
+
+- name: "Mailman: Symlink"
+  file:
+    src: /etc/mailman/apache.conf
+    dest: /etc/apache2/conf-enabled/mailman.conf
+    state: link
+  when: web1_package_install
+
+- name: "Mailman: Check if /var/lib/mailman/aliases exist"
+  file:
+    path: "/var/lib/mailman/aliases"
+    state: touch
+  when: mailman_package_install.changed
+
+- name: "Mailman: newaliases"
+  shell: newaliases
+  when: mailman_new_maillist.changed
+
+- name: "Restart Apache2 and Postfix"
+  service:
+    name: "{{ item }}"
+    state: restarted
+  with_items:
+    - apache2
+    - postfix
+  register: mailman_a2_restart
+
+- name: "Start mailman"
+  service:
+    name: mailman
+    state: started
+  when: mailman_a2_restart
+
+##################### Roundcube
+- name: Debonf - Roundcube
+  debconf:
+    name: "{{ item.name }}"
+    question: "{{ item.question }}"
+    value: "{{ item.value }}"
+    vtype: "{{ item.vtype }}"
+  with_items: 
+  - { name: "roundcube-core", question: "roundcube/database-type", value: "mysql", vtype: "multiselect"}
+  - { name: "roundcube-core", question: "roundcube/mysql/app-pass", value: "", vtype: "password"}
+
+- name: Install packages (Roundcube)
+  apt:
+    name:
+      - roundcube 
+      - roundcube-core
+      - roundcube-mysql
+      - roundcube-plugins
+      - roundcube-plugins-extra
+      - javascript-common
+      - libjs-jquery-mousewheel
+      - php-net-sieve
+      - tinymce
+    state: present
+  register: roundcube_package_install
+
+- name: roundcube.conf template
+  template:
+    src: roundcube.conf.j2
+    dest: /etc/apache2/conf-enabled/roundcube.conf
+  when: web1_package_install
+  notify: restart apache2
+
+- name: roundcube php template
+  template:
+    src: config.inc.php.j2
+    dest: /etc/roundcube/config.inc.php
+  when: roundcube_package_install

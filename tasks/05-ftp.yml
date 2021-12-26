@@ -1,0 +1,80 @@
+- name: Install packages (PureFTPd and Quota)
+  apt:
+    name:
+      - pure-ftpd-common
+      - pure-ftpd-mysql
+      - quota
+      - quotatool
+    state: present
+  register: ftp_package_install
+
+- name: "PureFTPd: /etc/default/pure-ftpd-common template"
+  template:
+    src: "pure-ftpd-common.j2"
+    dest: "/etc/default/pure-ftpd-common"
+
+- name: "PureFTPd: Enable TLS"
+  command: "echo 1 > /etc/pure-ftpd/conf/TLS"
+  register: ftp_enable_tls
+  
+- name: "PureFTPd: SSL cert"
+  block:
+  - name: "Create /etc/ssl/private/"
+    file:
+      path: "/etc/ssl/private"
+      state: directory
+
+  - name: Generate an OpenSSL private key
+    openssl_privatekey:
+      path: "/etc/ssl/private/pure-ftpd.pem"
+      size: "2048"
+      type: "RSA"
+      backup: yes
+      mode: 0600
+      owner: root
+      group: root
+
+  - name: Generate an OpenSSL Certificate Signing Request with Subject information
+    openssl_csr:
+      path: "/etc/ssl/private/pure-ftpd.csr"
+      privatekey_path: "/etc/ssl/private/pure-ftpd.pem"
+      country_name: "{{ ssl_cert_country }}"
+      organization_name: "{{ ssl_cert_organisation }}"
+      email_address: "{{ admin_email }}"
+      common_name: "{{ ispconfig_hostname }}"
+
+  when: ftp_enable_tls|bool
+
+- name: "PureFTPd: Restart"
+  service: 
+    name: pure-ftpd-mysql
+    state: restarted
+
+
+- name: "mount options for /"
+  mount:
+    path: "/"
+    src: "UUID={{ ansible_mounts | json_query('[?mount == `/`] | [0].uuid') }}"
+    fstype: "ext4"
+    opts: "errors=remount-ro,usrjquota=quota.user,grpjquota=quota.group,jqfmt=vfsv0"
+    state: mounted
+  ignore_errors: yes
+  register: quota_mount
+
+- name: "PureFTPd: Check quota"
+  command: quotacheck -avugm
+  ignore_errors: yes
+  when: quota_mount
+
+- name: "PureFTPd: Quota On"
+  command: quotaon -avug
+  ignore_errors: yes
+  when: quota_mount
+  notify: restart pureftpd
+
+
+
+
+
+
+

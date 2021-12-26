@@ -1,0 +1,97 @@
+######################## Web, LAMP ###############################
+
+
+
+
+##### Debconf PMA
+
+- name: Debconf - PMA
+  debconf:
+    name: "{{ item.name }}"
+    question: "{{ item.question }}"
+    value: "{{ item.value }}"
+    vtype: "{{ item.vtype }}"
+  with_items: 
+  - { name: "phpmyadmin", question: "phpmyadmin/dbconfig-install", value: "true", vtype: "boolean"}
+  - { name: "phpmyadmin", question: "phpmyadmin/mysql/app-pass", value: "", vtype: "password"}
+  - { name: "phpmyadmin", question: "phpmyadmin/reconfigure-webserver", value: "apache2", vtype: "multiselect"}
+  
+- name: Install packages (Apache, PHP, phpMyAdmin and dependencies)
+  apt:
+    name:
+      - apache2
+      - apache2-doc
+      - apache2-utils
+      - libapache2-mod-php
+      - php7.4
+      - php7.4-common
+      - php7.4-gd
+      - php7.4-mysql
+      - php7.4-imap
+      - phpmyadmin
+      - php7.4-cli
+      - php7.4-cgi
+      - libapache2-mod-fcgid
+      - apache2-suexec-pristine
+      - php-pear
+      - libruby
+      - libapache2-mod-python
+      - php7.4-curl
+      - php7.4-intl
+      - php7.4-pspell 
+      - php7.4-sqlite3
+      - php7.4-tidy
+      - php7.4-xmlrpc
+      - php7.4-xsl
+      - memcached
+      - php-memcache
+      - php-imagick
+      - php7.4-zip
+      - php7.4-mbstring
+      - php-soap
+      - php7.4-soap
+      - php7.4-opcache
+      - php-apcu
+      - php7.4-fpm
+      - libapache2-reload-perl
+      - certbot
+    state: present
+  register: web1_package_install
+
+- name: Add apache modules
+  apache2_module:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - suexec
+    - rewrite
+    - ssl
+    - actions
+    - include
+    - cgi
+    - alias
+    - proxy_fcgi
+    - dav_fs
+    - dav
+    - auth_digest
+    - headers
+
+- name: Protect against HTTPOXY vuln
+  template:
+    src: httpoxy.conf.j2
+    dest: "/etc/apache2/conf-available/httpoxy.conf"
+    owner: root
+    group: root
+    mode: 644
+
+- name: "Apache2: enable httpoxy.conf"
+  command: a2enconf httpoxy
+  
+- name: "Apache2: Restart"
+  service:
+    name: apache2
+    state: restarted
+
+
+
+

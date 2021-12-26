@@ -1,0 +1,11 @@
+---
+
+######## Tasks #######################################
+- include_tasks: 01-default_setup.yml
+- include_tasks: 02-database.yml
+- include_tasks: 03-web.yml
+- include_tasks: 04-mailing.yml
+- include_tasks: 05-ftp.yml
+- include_tasks: 06-security.yml
+- include_tasks: 07-others.yml
+- include_tasks: 08-ispconfig.yml

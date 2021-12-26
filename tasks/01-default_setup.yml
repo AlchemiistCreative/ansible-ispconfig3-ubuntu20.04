@@ -1,0 +1,147 @@
+---
+###################################################### Create file .count_run ########################################
+- name: Check if .count_run exist
+  stat:
+    path: "/root/.count_run"
+  register: count_run_file
+
+- name: Setup .count_run on first run
+  block:
+  - name: Create .count_run
+    file:
+      path: "/root/.count_run"
+      state: touch
+      owner: root
+      group: root
+      mode: 0644
+  - name: Content
+    lineinfile:
+      path: "/root/.count_run"
+      line: "0"
+  when: not count_run_file.stat.exists
+
+- name: Get Content
+  command: "cat /root/.count_run"
+  register: count_run_content
+
+- name: "Counting"
+  set_fact:
+    counting: "{{ count_run_content.stdout|int + 1 }}"
+ 
+
+- name: Incrementation count
+  replace:
+    path: "/root/.count_run"
+    regexp: "{{ count_run_content.stdout|int }}"
+    replace: "{{ counting }}"
+
+- name: debug
+  debug:
+    msg: " Run counting: {{ counting }}"
+############################################### Hostname ###############################
+
+- name: Set hostname
+  hostname:
+    name: "{{ ispconfig_hostname }}"
+  when: hostname_needed
+  
+############################################### User Creation and ssh keys deploiment ###############################
+- name: User creation if needed
+  block:
+  - name:  "User creation {{ user_ispconfig }} "
+    user:
+      name: "{{ user_ispconfig }}"
+      shell: /bin/bash
+      groups: sudo
+      append: yes
+      password: "{{ user_ispconfig_password | password_hash('sha512') }}"
+  - name: "Deploy SSH key"
+    authorized_key:
+      user: "{{ user_ispconfig }}"
+      key: "{{ lookup('file', '/tmp/{{ local_user }}/ssh/id_rsa.pub') }}"
+      state: present
+  when: user_needed 
+  
+####################################################### Modify source.list ###########################################
+- name: Add source repository into sources list
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+    update_cache: no
+  with_items:
+  - "{{repo}}"
+ 
+############################################# Update/Upgrade and reboot if needed ####################################
+- name: Update apt repo and cache
+  apt:
+    update_cache: yes
+    force_apt_get: yes
+    cache_valid_time: 3600
+
+
+- name: Upgrades all packages
+  apt:
+    upgrade: dist
+    force_apt_get: yes
+
+
+- name: Check reboot-required files
+  register: reboot_required_file
+  stat:
+    path: "/var/run/reboot-required"
+
+
+- name: Reboot if needed
+  reboot:
+    msg: "Reboot from ansible"
+    connect_timeout: 5
+    reboot_timeout: 300
+    pre_reboot_delay: 0
+    post_reboot_delay: 30
+    test_command: uptime
+  when: reboot_required_file.stat.exists
+
+##################################################### Disabling AppArmor ###############################################
+
+- name: Check if AppArmor is present
+  stat: 
+    path: "/etc/init.d/apparmor"
+  register: service_apparmor_status
+
+
+- name: Disable AppArmor if present
+  block:
+  - name: Stopping service AppArmor
+    service:
+      name: apparmor
+      state: stopped
+
+  - name: Disable service AppArmor
+    service:
+      name: apparmor
+      enabled: false
+
+  - name: remove package AppArmor
+    apt:
+      name: apparmor
+      state: absent
+      purge: true
+  when: service_apparmor_status.stat.exists
+
+##################################################### Installing NTP ###################################################
+
+- name: Installing NTP
+  apt:
+    name: ntp
+    state: present
+
+##################################################### Bind DNS / haveged ###################################################
+
+- name: Installing Bind DNS
+  apt:
+    name:
+      - bind9
+      - dnsutils
+      - haveged
+    state: present
+

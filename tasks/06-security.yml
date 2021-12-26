@@ -1,0 +1,92 @@
+
+
+- name: Install packages (SpamAssassin, Amavisd-new, ClamAV and dependencies)
+  apt:
+    name:
+      - amavisd-new
+      - spamassassin
+      - clamav
+      - clamav-daemon
+      - unzip
+      - bzip2
+      - arj
+      - nomarch
+      - lzop
+      - cabextract
+      - apt-listchanges
+      - libnet-ldap-perl
+      - libauthen-sasl-perl
+      - clamav-docs
+      - daemon
+      - libio-string-perl
+      - libio-socket-ssl-perl
+      - libnet-ident-perl
+      - zip
+      - libnet-dns-perl
+      - postgrey
+      - jailkit
+      - fail2ban
+      - ufw
+    state: present
+
+  register: sec1_packages_install
+
+- name: stop spamassassin and remove from updaterc
+  systemd:
+    name: spamassassin
+    state: stopped
+    enabled: false
+
+
+- name: Debug clamav install
+  debug:
+    var: "{{ sec1_packages_install }}"
+
+
+
+###### ClamAV
+
+- name: Start ClamAV when packages changes
+  block:
+  - name: Run freshclam after packages installed
+    command: freshclam
+    register: freshclam_result
+    ignore_errors: yes
+  - name: Run clamav-daemon
+    service:
+      name: clamav-daemon
+      state: started
+  - name: Show freshclam_result
+    debug:
+      msg: "Error (ignore): {{ freshclam_result.stderr }}"
+  when: counting == 1
+
+
+- name: Start ClamAV when packages didnt change
+  block:
+  - name: Run freshclam after packages installed
+    command: freshclam
+    register: freshclam_result_
+    failed_when:
+      - freshclam_result_ is failed
+      - freshclam_result_.stderr.find('locked by another process') != -1
+  - name: Run clamav-daemon
+    service:
+      name: clamav-daemon
+      state: started
+  - name: Show freshclam_result_
+    debug:
+      msg: "Error (no ignore): {{ freshclam_result_.stderr }}"
+  when: counting > 1
+
+
+
+##### fail2ban 
+
+- name: Configure Fail2ban
+  template:
+    src: jail.local.j2
+    dest: "/etc/fail2ban/jail.local"
+  notify: restart fail2ban
+
+

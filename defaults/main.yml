@@ -1,0 +1,83 @@
+#### Country
+country: BE
+################# Mail subdomain name ########################
+mail_fqdn: mail.example.com
+
+####### User Creation: if true user is created ######
+user_needed: true
+user_ispconfig: admin_ispconfig
+user_ispconfig_password: admin_ispconfig_password ## Should be vaulted
+
+
+####### MariaDB Bind Address #########################
+mysql_bind_address_bool: false
+
+bind_address: 127.0.0.1
+
+###
+
+admin_email: admin@example.com
+
+
+## source list ###
+repo:
+  - "deb http://{{country}}.archive.ubuntu.com/ubuntu focal-security multiverse"
+  - "deb http://{{country}}.archive.ubuntu.com/ubuntu focal-security universe"
+  - "deb http://{{country}}.archive.ubuntu.com/ubuntu focal-backports main restricted universe multiverse"
+  - "deb http://{{country}}.archive.ubuntu.com/ubuntu focal-updates multiverse"
+  - "deb http://{{country}}.archive.ubuntu.com/ubuntu focal multiverse"
+  - "deb http://{{country}}.archive.ubuntu.com/ubuntu focal-updates universe"
+  - "deb http://{{country}}.archive.ubuntu.com/ubuntu focal universe"
+ 
+
+#### hostname #####
+
+ispconfig_hostname: "server1.example.com"
+hostname_needed: false
+####### Defaults #######
+author: AlchemistCreative
+
+##### Certificate #####
+ssl_cert_country: BE
+ssl_cert_state: Some-State
+ssl_cert_locality: Belgium
+ssl_cert_organisation: Internet Widgits Pty Ltd
+ssl_cert_organisation_unit: IT department
+ssl_cert_common_name: server1.example.com
+
+#### autoinstall ####
+language: en
+ispconfig_mysql_hostname: localhost
+ispconfig_install_mode: standard
+ispconfig_mysql_database: dbispconfig
+ispconfig_mysql_port: 3306
+ispconfig_mysql_charset: utf8
+ispconfig_http_server: apache
+ispconfig_ispconfig_port: 8080
+ispconfig_ispconfig_use_ssl: y
+ispconfig_admin_password: ExamplePassword ### Should be vaulted
+ispconfig_mysql_ispconfig_user: ispconfig
+ispconfig_mysql_ispconfig_password: ExampleispconfigMysqlPassword ## Should be vaulted
+ispconfig_join_multiserver_setup: n
+ispconfig_mysql_root_user: root
+ispconfig_mysql_master_database: dbispconfig
+ispconfig_mysql_master_hostname: master.example.com
+ispconfig_mysql_master_root_password: ExampleMysqlMasterPassword ## Should be vaulted
+ignore_hostname_dns: y
+ispconfig_postfix_ssl_symlink: y
+ispconfig_pureftpd_ssl_symlink: y
+create_ssl_server_certs: y
+ispconfig_configure_mail: y
+ispconfig_configure_jailkit: y
+ispconfig_configure_ftp: y
+ispconfig_configure_dns: y
+ispconfig_configure_nginx: n
+ispconfig_configure_apache: y
+ispconfig_configure_firewall: y
+ispconfig_configure_webserver: y
+ispconfig_install_ispconfig_web_interface: y
+ispconfig_reconfigure_permissions_in_master_database: no
+ispconfig_reconfigure_services: yes
+ispconfig_create_new_ispconfig_ssl_cert: no
+ispconfig_do_backup: yes
+ispconfig_reconfigure_crontab: yes

@@ -1,0 +1,120 @@
+  ######################## MariaDB ###############################
+
+- name: Install packages (MariaDB and some dependencies)
+  apt:
+    name:
+      - mariadb-client
+      - mariadb-server
+      - python3-pip
+    state: present
+  register: database1_package_install
+
+  
+#####
+- name: Make sure pymysql is present
+  pip:
+    name: 
+      - pymysql
+    state: present
+
+- name: server-50.cnf template deploy
+  template:
+    src: 50-server.cnf.j2
+    dest: "/etc/mysql/mariadb.conf.d/50-server.cnf"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Restart mysql
+  service:
+    name: mysql
+    state: restarted
+
+    
+- name: "MySQL (MariaDB): mysql_secure_installation"
+  block:
+  - name: "MySQL (MariaDB): Set root password"
+    mysql_user:
+      user: root
+      password: "{{ ispconfig_mysql_master_root_password }}"
+      host: localhost
+      login_unix_socket: /var/run/mysqld/mysqld.sock
+  
+  - name: debian.cnf template deploy
+    template:
+      src: debian.cnf.j2
+      dest: "/etc/mysql/debian.cnf"
+      owner: root
+      group: root
+      mode: 0644
+  
+  - name: .my.cnf template deploy
+    template:
+      src: .my.cnf.j2
+      dest: "/root/.my.cnf"
+      owner: root
+      group: root
+      mode: 0600
+
+  - name: "MySQL (MariaDB): Removes remote access for root"
+    mysql_user:
+      login_user: root
+      login_password: "{{ ispconfig_mysql_master_root_password }}"
+      user: root
+      host: "{{ ansible_fqdn }}"
+      state: absent
+
+  - name: "MySQL (MariaDB): Delete anonymous users"
+    mysql_user:
+      login_user: root
+      login_password: "{{ ispconfig_mysql_master_root_password }}"
+      user: ""
+      state: absent
+      host_all: yes
+
+  - name: "MySQL (MariaDB): Removes test db"
+    mysql_db:
+      login_user: root
+      login_password: "{{ ispconfig_mysql_master_root_password }}"
+      db: test
+      state: absent
+    
+  - name: Restart mysql
+    service:
+      name: mysql
+      state: restarted
+    register: mysql_secure_installation_end
+  
+  
+####### MySQL limits
+
+- name: "/etc/security/limits.conf template"
+  template:
+    src: limits_1.conf.j2
+    dest: "/etc/security/limits.conf"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: "Create mysql.service.d"
+  file:
+    path: "/etc/systemd/system/mysql.service.d/"
+    state: directory
+    owner: root
+    group: root
+    mode: 0644
+    
+- name: "/etc/systemd/system/mysql.service.d/limits.conf template"
+  template:
+    src: limits_2.conf.j2
+    dest: "/etc/systemd/system/mysql.service.d/limits.conf"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: "daemon-reload and MariaDB restart"
+  systemd:
+    name: mariadb
+    state: restarted
+    daemon_reload: yes
+

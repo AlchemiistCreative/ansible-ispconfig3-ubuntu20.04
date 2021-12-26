@@ -1,0 +1,26 @@
+---
+# handlers file for roles/ispconfig
+
+
+- name: restart pureftpd
+  service:
+    name: pure-ftpd-mysql
+    state: restarted
+
+
+- name: restart fail2ban
+  service:
+    name: fail2ban
+    state: restarted
+
+- name: restart apache2
+  service:
+    name: apache2
+    state: restarted
+
+    
+- name: update cache
+  apt:
+    update_cache: yes
+    force_apt_get: yes
+    cache_valid_time: 3600

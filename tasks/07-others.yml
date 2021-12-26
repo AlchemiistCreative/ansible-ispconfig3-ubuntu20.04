@@ -1,0 +1,71 @@
+
+#####################################################################################
+- name: Install packages (Vlogger, Webalizer, AWStats, GoAccess, etc)
+  apt:
+    name:
+      - vlogger 
+      - webalizer 
+      - awstats 
+      - geoip-database
+      - libclass-dbi-mysql-perl
+    state: present
+  register: other_package_install
+
+########### GoAccess ################################################################
+
+- name: "/var/keys directory creation"
+  file:
+    path: /var/keys
+    state: directory
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Check if key exist
+  stat:
+    path: /var/keys/goaccess_signing.key
+  register: goaccess_stat_result
+
+- name: GoAccess Key Get Url
+  get_url:
+    url: "http://deb.goaccess.io/gnugpg.key" 
+    dest: /var/keys/goaccess_signing.key
+  register: goaccess_url_result
+  when: not goaccess_stat_result.stat.exists  
+
+- name: Add key
+  command: "apt-key add /var/keys/goaccess_signing.key"
+  when: goaccess_url_result.changed
+
+
+- name: Add source repository into sources list
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+    update_cache: no
+  loop:
+  - "deb http://deb.goaccess.io focal main"
+  register: apt_repo_go_access
+
+- name: update cache
+  apt:
+    update_cache: yes
+    force_apt_get: yes
+    cache_valid_time: 3600
+  when: apt_repo_go_access
+  
+- name: Install GoAccess
+  apt:
+    name: goaccess
+    state: present
+  
+- name: Awstat file
+  template:
+    src: awstats.j2
+    dest: "/etc/cron.d/awstats"
+
+- name: Enable and Start Haveged
+  systemd:
+    name: haveged
+    state: started
+    enabled: yes

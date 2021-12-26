@@ -1,0 +1,16 @@
+#
+#                  Templated by {{ author }}
+#
+# =========================================================================
+[client]
+host = localhost
+user = root
+password = {{ user_mariadb_password }}
+socket = /var/run/mysqld/mysqld.sock
+
+[mysql_upgrade]
+host = localhost
+user = root
+password = {{ user_mariadb_password }}
+socket = /var/run/mysqld/mysqld.sock
+basedir = /usr

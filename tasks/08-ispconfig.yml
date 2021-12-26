@@ -1,0 +1,34 @@
+#### Install ISPConfig
+
+- name: Download and unzip ISPConfig
+  unarchive:
+    src: https://ispconfig.org/downloads/ISPConfig-3-stable.tar.gz
+    dest: "/tmp/"
+    remote_src: yes
+
+- name: autoinstall.ini template
+  template: 
+    src: "autoinstall.j2"
+    dest: /tmp/ispconfig3_install/install/autoinstall.ini
+
+- name: Check
+  stat:
+    path: /usr/local/ispconfig
+  register: ispconfig_install
+
+- name: ISPConfig Installation
+  command: "php -q install.php --autoinstall=autoinstall.ini"
+  args:
+    chdir: /tmp/ispconfig3_install/install/
+  when: not ispconfig_install.stat.exists
+
+- name: Add hostname to ISPConfig vhost
+  lineinfile:
+    dest: /etc/apache2/sites-available/ispconfig.vhost
+    line: "  ServerName {{ ispconfig_hostname }}"
+    insertafter: "^\\s*ServerAdmin webmaster@localhost$"
+
+- name: Restart apache
+  service:
+    name: apache2
+    state: restarted
