@@ -1,5 +1,3 @@
-
-
 - name: Install packages (SpamAssassin, Amavisd-new, ClamAV and dependencies)
   apt:
     name:
@@ -57,7 +55,6 @@
     debug:
       msg: "Error (ignore): {{ freshclam_result.stderr }}"
   when: counting == 1
-
 
 - name: Start ClamAV when packages didnt change
   block:
