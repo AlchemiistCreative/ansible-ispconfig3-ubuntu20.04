@@ -37,12 +37,9 @@
     state: stopped
     enabled: false
 
-
 - name: Debug clamav install
   debug:
     var: "{{ sec1_packages_install }}"
-
-
 
 ###### ClamAV
 
@@ -79,8 +76,6 @@
       msg: "Error (no ignore): {{ freshclam_result_.stderr }}"
   when: counting > 1
 
-
-
 ##### fail2ban 
 
 - name: Configure Fail2ban
@@ -88,5 +83,3 @@
     src: jail.local.j2
     dest: "/etc/fail2ban/jail.local"
   notify: restart fail2ban
-
-
