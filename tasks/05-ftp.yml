@@ -71,10 +71,3 @@
   ignore_errors: yes
   when: quota_mount
   notify: restart pureftpd
-
-
-
-
-
-
-
