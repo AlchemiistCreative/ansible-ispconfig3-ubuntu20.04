@@ -1,6 +1,5 @@
 ---
 ############################################### Disable sendmail ################################
-
 - name: Check if sendmail is present
   stat: 
     path: "/etc/init.d/sendmail"
@@ -24,13 +23,8 @@
       state: absent
       purge: true
   when: service_sendmail_status.stat.exists
-
-
 ############################################### Package installation ###############################
-
-
 #### Postfix Debconf ######
-
 - name: Debconf - Postfix
   debconf:
     name: "{{ item.name }}"
@@ -42,7 +36,6 @@
   - { name: "postfix", question: "postfix/mailname", value: "{{ mail_fqdn }}", vtype: "select"}
 
 ############################
-
 - name: Install packages (postfix, dovecot, mariadb, binutils, rkhunter, etc..)
   apt:
     name:
@@ -74,11 +67,7 @@
     name: postfix
     state: restarted
   when: postfix_master_file
-
-
 ########## Mailman ##############
-
-
 - name: Debonf - Mailman
   debconf:
     name: "{{ item.name }}"
@@ -105,7 +94,6 @@
   command: echo {{ admin_email }} | echo {{ mailman_admin_password }} | newlist mailman
   register: mailman_new_maillist
   when: mailman_package_install.changed
-
 
 - name: "Mailman: /etc/aliases template"
   template:
