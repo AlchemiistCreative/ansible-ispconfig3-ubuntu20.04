@@ -78,18 +78,15 @@
     force_apt_get: yes
     cache_valid_time: 3600
 
-
 - name: Upgrades all packages
   apt:
     upgrade: dist
     force_apt_get: yes
 
-
 - name: Check reboot-required files
   register: reboot_required_file
   stat:
     path: "/var/run/reboot-required"
-
 
 - name: Reboot if needed
   reboot:
@@ -100,14 +97,11 @@
     post_reboot_delay: 30
     test_command: uptime
   when: reboot_required_file.stat.exists
-
 ##################################################### Disabling AppArmor ###############################################
-
 - name: Check if AppArmor is present
   stat: 
     path: "/etc/init.d/apparmor"
   register: service_apparmor_status
-
 
 - name: Disable AppArmor if present
   block:
@@ -144,4 +138,3 @@
       - dnsutils
       - haveged
     state: present
-
