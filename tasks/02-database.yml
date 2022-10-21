@@ -9,7 +9,6 @@
     state: present
   register: database1_package_install
 
-  
 #####
 - name: Make sure pymysql is present
   pip:
@@ -30,7 +29,6 @@
     name: mysql
     state: restarted
 
-    
 - name: "MySQL (MariaDB): mysql_secure_installation"
   block:
   - name: "MySQL (MariaDB): Set root password"
@@ -84,10 +82,7 @@
       name: mysql
       state: restarted
     register: mysql_secure_installation_end
-  
-  
 ####### MySQL limits
-
 - name: "/etc/security/limits.conf template"
   template:
     src: limits_1.conf.j2
@@ -117,4 +112,3 @@
     name: mariadb
     state: restarted
     daemon_reload: yes
-
