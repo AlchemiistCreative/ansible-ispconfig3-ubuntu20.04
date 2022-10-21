@@ -1,12 +1,9 @@
 ---
 # handlers file for roles/ispconfig
-
-
 - name: restart pureftpd
   service:
     name: pure-ftpd-mysql
     state: restarted
-
 
 - name: restart fail2ban
   service:
@@ -18,7 +15,6 @@
     name: apache2
     state: restarted
 
-    
 - name: update cache
   apt:
     update_cache: yes
