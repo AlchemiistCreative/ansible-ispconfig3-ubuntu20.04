@@ -1,10 +1,5 @@
 ######################## Web, LAMP ###############################
-
-
-
-
 ##### Debconf PMA
-
 - name: Debconf - PMA
   debconf:
     name: "{{ item.name }}"
@@ -91,7 +86,3 @@
   service:
     name: apache2
     state: restarted
-
-
-
-
